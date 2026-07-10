@@ -89,6 +89,14 @@ export default function HomePage() {
     showToast("已填入示例数据");
   };
 
+  const handleClearData = () => {
+    setInput({ ...emptyInput, jobStage: stage });
+    setResult(null);
+    setOptimizeStyle("default");
+    setStep("input");
+    showToast("已清空数据");
+  };
+
   const handleAnalyze = async () => {
     setAnalyzing(true);
     try {
@@ -299,8 +307,10 @@ export default function HomePage() {
           }}
           onLoadSample={handleLoadSample}
           onAnalyze={handleAnalyze}
+          onClear={handleClearData}
           analyzing={analyzing}
           stage={stage}
+          hasResult={analyzed}
         />
       );
     }
@@ -451,6 +461,29 @@ export default function HomePage() {
               );
             })}
           </ul>
+
+          <div className="sidenav-actions">
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              style={{ width: "100%" }}
+              onClick={handleAnalyze}
+              disabled={
+                analyzing || !input.jdText.trim() || !input.resumeText.trim()
+              }
+            >
+              {analyzing ? "分析中…" : analyzed ? "重新分析" : "开始分析"}
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              style={{ width: "100%" }}
+              onClick={handleClearData}
+              disabled={analyzing}
+            >
+              清空数据
+            </button>
+          </div>
         </aside>
 
         <main className="main">{renderMain()}</main>

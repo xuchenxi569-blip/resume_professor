@@ -8,8 +8,10 @@ interface Props {
   onChange: (next: UserInput) => void;
   onLoadSample: () => void;
   onAnalyze: () => void;
+  onClear?: () => void;
   analyzing: boolean;
   stage: JobStage;
+  hasResult?: boolean;
 }
 
 export function InputPanel({
@@ -17,8 +19,10 @@ export function InputPanel({
   onChange,
   onLoadSample,
   onAnalyze,
+  onClear,
   analyzing,
   stage,
+  hasResult = false,
 }: Props) {
   const set = <K extends keyof UserInput>(key: K, v: UserInput[K]) =>
     onChange({ ...value, [key]: v });
@@ -244,8 +248,18 @@ export function InputPanel({
           onClick={onAnalyze}
           disabled={analyzing || !value.jdText.trim() || !value.resumeText.trim()}
         >
-          {analyzing ? "分析中…" : "开始分析"}
+          {analyzing ? "分析中…" : hasResult ? "重新分析" : "开始分析"}
         </button>
+        {onClear ? (
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={onClear}
+            disabled={analyzing}
+          >
+            清空数据
+          </button>
+        ) : null}
         <span style={{ fontSize: 12, color: "var(--fg-muted)" }}>
           已配置 DeepSeek 密钥则走大模型；否则自动使用本地 Mock
         </span>
