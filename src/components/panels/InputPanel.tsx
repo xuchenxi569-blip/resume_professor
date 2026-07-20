@@ -167,22 +167,7 @@ export function InputPanel({
           </div>
 
           <div className="card">
-            <div className="card-title">
-              <span>简历信息</span>
-              <label className="check-row">
-                <input
-                  type="checkbox"
-                  checked={value.useCozeKnowledge}
-                  onChange={(e) => set("useCozeKnowledge", e.target.checked)}
-                />
-                连接扣子知识库
-              </label>
-            </div>
-            {value.useCozeKnowledge && (
-              <p className="hint" style={{ marginBottom: 10, color: "var(--fg-muted)", fontSize: 12 }}>
-                已启用：将从扣子知识库拉取简历事实与项目材料（当前为 Mock 占位，可后续替换真实 API）。
-              </p>
-            )}
+            <div className="card-title">简历信息</div>
             {libraryPicker}
             <div className="field">
               <textarea
@@ -195,10 +180,7 @@ export function InputPanel({
           </div>
 
           <div className="card">
-            <div className="card-title">
-              <span>补充信息</span>
-              {value.useCozeKnowledge && <span className="badge badge-info">知识库可同步</span>}
-            </div>
+            <div className="card-title">补充信息</div>
             <div className="field">
               <textarea
                 className="textarea"
@@ -295,22 +277,7 @@ export function InputPanel({
           </div>
 
           <div className="card">
-            <div className="card-title">
-              <span>原始简历</span>
-              <label className="check-row">
-                <input
-                  type="checkbox"
-                  checked={value.useCozeKnowledge}
-                  onChange={(e) => set("useCozeKnowledge", e.target.checked)}
-                />
-                连接扣子知识库
-              </label>
-            </div>
-            {value.useCozeKnowledge && (
-              <p className="hint" style={{ marginBottom: 10, color: "var(--fg-muted)", fontSize: 12 }}>
-                已启用：将从扣子知识库拉取简历事实与项目材料（当前为 Mock 占位，可后续替换真实 API）。
-              </p>
-            )}
+            <div className="card-title">原始简历</div>
             {libraryPicker}
             <div className="field">
               <textarea
@@ -323,10 +290,7 @@ export function InputPanel({
           </div>
 
           <div className="card">
-            <div className="card-title">
-              <span>补充信息</span>
-              {value.useCozeKnowledge && <span className="badge badge-info">知识库可同步</span>}
-            </div>
+            <div className="card-title">补充信息</div>
             <div className="field">
               <textarea
                 className="textarea"

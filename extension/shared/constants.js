@@ -16,6 +16,8 @@ var RP_MSG = {
   DRAFT: "RP_EXT_DRAFT",
   SAVED: "RP_EXT_SAVED",
   SHOW_TOAST: "RP_EXT_SHOW_TOAST",
+  DELETE_ROLE: "RP_EXT_DELETE_ROLE",
+  REPLACE_ROLES: "RP_EXT_REPLACE_ROLES",
 };
 
 var RP_SOURCE = "resume-professor-extension";

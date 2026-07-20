@@ -6,19 +6,25 @@ var LinkedInAdapter = {
   },
   extract: function () {
     var targetRole =
-      textOfLi(
+      rpTextOf(
+        ".job-details-jobs-unified-top-card__job-title a",
         ".job-details-jobs-unified-top-card__job-title",
         "h1.t-24",
-        "h1",
-        "[class*='job-title']"
+        "h1"
       ) || "";
+    targetRole = rpCleanText(targetRole.split(/\n/)[0]);
 
-    var companyName =
-      textOfLi(
-        ".job-details-jobs-unified-top-card__company-name a",
-        ".job-details-jobs-unified-top-card__company-name",
-        "[class*='company-name']"
-      ) || "";
+    var companyCandidates = [
+      rpTextOfDirect(
+        ".job-details-jobs-unified-top-card__company-name a"
+      ),
+      rpTextOfDirect(".job-details-jobs-unified-top-card__company-name"),
+      rpTextOfDirect("a[data-control-name='jobdetails_topcard_orgname']"),
+      rpTextOfDirect(".jobs-unified-top-card__company-name a"),
+      rpTextOfDirect(".jobs-unified-top-card__company-name"),
+    ];
+
+    var companyName = rpPickCompany(targetRole, companyCandidates);
 
     var jdEl =
       document.querySelector("#job-details") ||
@@ -30,34 +36,20 @@ var LinkedInAdapter = {
       ? (jdEl.innerText || jdEl.textContent || "").trim()
       : "";
 
-    return {
+    return rpSanitizeExtract({
       site: "linkedin",
-      targetRole: cleanLi(targetRole),
-      companyName: cleanLi(companyName),
+      targetRole: targetRole,
+      companyName: companyName,
       industry: "",
       companyType: "",
-      jdText: cleanLi(jdText),
+      jdText: jdText,
       pageUrl: location.href.split("?")[0],
-      confidence: targetRole && jdText.length > 80 ? "high" : "low",
-    };
+      confidence:
+        targetRole && companyName && jdText.length > 80
+          ? "high"
+          : targetRole && jdText.length > 80
+            ? "medium"
+            : "low",
+    });
   },
 };
-
-function textOfLi() {
-  for (var i = 0; i < arguments.length; i++) {
-    var el = document.querySelector(arguments[i]);
-    if (el) {
-      var t = (el.innerText || el.textContent || "").trim();
-      if (t) return t;
-    }
-  }
-  return "";
-}
-
-function cleanLi(s) {
-  return String(s || "")
-    .replace(/\u00a0/g, " ")
-    .replace(/[ \t]+\n/g, "\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-}

@@ -7,8 +7,7 @@ export type ApplyStep =
   | "match"
   | "probe"
   | "optimize"
-  | "final_resume"
-  | "export";
+  | "final_resume";
 
 export type InterviewStep =
   | "input"
@@ -100,7 +99,6 @@ export interface UserInput {
   jdText: string;
   resumeText: string;
   extraInfo: string;
-  useCozeKnowledge: boolean;
 }
 
 export interface CapabilityRow {

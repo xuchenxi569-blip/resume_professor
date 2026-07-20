@@ -6,7 +6,8 @@ var GenericAdapter = {
   },
   extract: function (options) {
     options = options || {};
-    var selection = (window.getSelection && String(window.getSelection())) || "";
+    var selection =
+      (window.getSelection && String(window.getSelection())) || "";
     selection = selection.trim();
 
     var jdText = selection;
@@ -19,25 +20,26 @@ var GenericAdapter = {
       jdText = ((article && article.innerText) || "").trim().slice(0, 8000);
     }
 
-    var title =
-      document.querySelector("h1") &&
-      (document.querySelector("h1").innerText || "").trim();
+    var titleEl = document.querySelector("h1");
+    var title = titleEl
+      ? rpCleanText(titleEl.innerText || "").split(/\n/)[0]
+      : "";
 
-    return {
+    var targetRole = rpCleanText(options.targetRole || title || "");
+    var companyName = rpPickCompany(targetRole, [
+      options.companyName,
+      rpGuessCompanyFromTitle(document.title || ""),
+    ]);
+
+    return rpSanitizeExtract({
       site: "generic",
-      targetRole: options.targetRole || title || "",
-      companyName: options.companyName || guessCompanyFromTitle(document.title) || "",
+      targetRole: targetRole,
+      companyName: companyName,
       industry: "",
       companyType: "",
       jdText: jdText,
       pageUrl: location.href.split("?")[0],
       confidence: selection.length > 80 ? "medium" : "low",
-    };
+    });
   },
 };
-
-function guessCompanyFromTitle(title) {
-  if (!title) return "";
-  var m = title.match(/^(.+?)[-_|·]/]//);
-  return m ? m[1].trim().slice(0, 40) : "";
-}

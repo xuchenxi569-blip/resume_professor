@@ -67,9 +67,7 @@ Axure、飞书文档、SQL（基础）、Excel、SmartBI、Coze、Cursor、Promp
   extraInfo: `补充信息：
 - 目标：从传统 B 端产品转向 AI 产品经理，优先 AI SaaS / ToB。
 - 优势：懂业务、能拆需求、有跨部门推进经验；有 AI Demo 可讲。
-- 短板：正式 AI 产品经理经历不足；PRD 与效果评测体系还需加强。
-- 可连接扣子知识库：个人项目说明、STAR 案例、FAQ 面试问答。`,
-  useCozeKnowledge: true,
+- 短板：正式 AI 产品经理经历不足；PRD 与效果评测体系还需加强。`,
 };
 
 export const APPLY_STEPS: { id: ApplyStep; label: string; index: number }[] = [
@@ -80,7 +78,6 @@ export const APPLY_STEPS: { id: ApplyStep; label: string; index: number }[] = [
   { id: "probe", label: "经历追问", index: 5 },
   { id: "optimize", label: "简历优化", index: 6 },
   { id: "final_resume", label: "最终简历", index: 7 },
-  { id: "export", label: "导出结果", index: 8 },
 ];
 
 export const INTERVIEW_STEPS: {

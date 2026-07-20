@@ -45,9 +45,24 @@ function pairKey(item) {
 function findExistingIndex(list, item) {
   var u = urlKey(item);
   var p = pairKey(item);
-  for (var i = 0; i < list.length; i++) {
-    if (u && urlKey(list[i]) === u) return i;
-    if (p && pairKey(list[i]) === p) return i;
+
+  if (u) {
+    for (var i = 0; i < list.length; i++) {
+      if (urlKey(list[i]) === u) return i;
+    }
+    // 有 URL：只升级无来源 URL 的同名手建条目，绝不覆盖另一个招聘链接
+    if (p) {
+      for (var j = 0; j < list.length; j++) {
+        if (!urlKey(list[j]) && pairKey(list[j]) === p) return j;
+      }
+    }
+    return -1;
+  }
+
+  if (p) {
+    for (var k = 0; k < list.length; k++) {
+      if (pairKey(list[k]) === p) return k;
+    }
   }
   return -1;
 }
@@ -78,7 +93,7 @@ async function mergeItem(item) {
   return { item: item, total: list.length, updated: idx >= 0 };
 }
 
-async function notifyWebTabs(item) {
+async function notifyWebTabs(item, mode) {
   try {
     var tabs = await chrome.tabs.query({
       url: ["http://localhost/*", "http://127.0.0.1/*"],
@@ -93,6 +108,7 @@ async function notifyWebTabs(item) {
           source: RP_SOURCE,
           payload: roles,
           latest: item,
+          mode: mode || "pull",
         });
       } catch (_e) {
         /* 非简历专家页或未注入 bridge */
@@ -101,6 +117,34 @@ async function notifyWebTabs(item) {
   } catch (_e) {
     /* ignore */
   }
+}
+
+function itemMatchesDelete(item, payload) {
+  if (!payload) return false;
+  if (payload.id && item.id === payload.id) return true;
+  var u = urlKey(item);
+  var delNote = String(payload.note || "")
+    .replace(/\/$/, "")
+    .toLowerCase()
+    .trim();
+  if (u && delNote && u === "url:" + delNote) return true;
+  var p = pairKey(item);
+  var delPair = pairKey({
+    companyName: payload.companyName || "",
+    targetRole: payload.targetRole || "",
+  });
+  // 仅当两边都没有 URL 时，才允许按公司+岗位删除，避免误删同名不同链接
+  if (!u && !delNote && p && delPair && p === delPair) return true;
+  return false;
+}
+
+async function deleteExtRole(payload) {
+  var list = await loadExtRoles();
+  var next = list.filter(function (item) {
+    return !itemMatchesDelete(item, payload);
+  });
+  await saveExtRoles(next);
+  return { removed: list.length - next.length, total: next.length };
 }
 
 chrome.runtime.onInstalled.addListener(function () {
@@ -191,12 +235,41 @@ chrome.runtime.onMessage.addListener(function (msg, _sender, sendResponse) {
           updated: result.updated,
         });
         flashBadge(result.updated ? "更" : "✓");
-        return notifyWebTabs(result.item);
+        return notifyWebTabs(result.item, "save");
       })
       .catch(function (err) {
         sendResponse({
           ok: false,
           error: (err && err.message) || "保存失败",
+        });
+      });
+    return true;
+  }
+
+  if (msg.type === RP_MSG.DELETE_ROLE) {
+    deleteExtRole(msg.payload || {})
+      .then(function (result) {
+        sendResponse({ ok: true, removed: result.removed, total: result.total });
+      })
+      .catch(function (err) {
+        sendResponse({
+          ok: false,
+          error: (err && err.message) || "删除失败",
+        });
+      });
+    return true;
+  }
+
+  if (msg.type === RP_MSG.REPLACE_ROLES) {
+    var roles = Array.isArray(msg.payload) ? msg.payload : [];
+    saveExtRoles(roles)
+      .then(function () {
+        sendResponse({ ok: true, total: roles.length });
+      })
+      .catch(function (err) {
+        sendResponse({
+          ok: false,
+          error: (err && err.message) || "同步失败",
         });
       });
     return true;

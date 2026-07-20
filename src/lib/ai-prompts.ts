@@ -83,9 +83,6 @@ ${input.resumeText}
 【补充信息】
 ${input.extraInfo || "（无）"}
 
-【是否声明连接知识库】
-${input.useCozeKnowledge ? "是（可参考补充信息中的知识库材料）" : "否"}
-
 请返回如下 JSON schema（键名必须一致）：
 {
   "jd": {

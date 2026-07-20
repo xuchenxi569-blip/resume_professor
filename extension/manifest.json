@@ -39,6 +39,7 @@
       ],
       "js": [
         "shared/constants.js",
+        "content/extract-utils.js",
         "content/adapters/boss.js",
         "content/adapters/liepin.js",
         "content/adapters/linkedin.js",

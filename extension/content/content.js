@@ -24,7 +24,8 @@
         data.confidence = "medium";
       }
     }
-    return data;
+    // 统一纠正：公司字段被岗位名污染时，从标题等再猜一次
+    return rpSanitizeExtract(data);
   }
 
   function looksLikeJobPage(data) {

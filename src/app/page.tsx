@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import type {
   AnalysisResult,
   AppStep,
@@ -24,7 +24,10 @@ import {
   EXT_MSG,
   EXT_SOURCE,
   loadRoleLibrary,
+  markRolesDeleted,
   mergeRoleLibrary,
+  notifyExtensionDelete,
+  notifyExtensionReplace,
   requestExtensionSync,
   saveRoleLibrary,
 } from "@/lib/role-library";
@@ -35,7 +38,6 @@ import { MatchPanel } from "@/components/panels/MatchPanel";
 import { ProbePanel } from "@/components/panels/ProbePanel";
 import { OptimizePanel } from "@/components/panels/OptimizePanel";
 import { FinalResumePanel } from "@/components/panels/FinalResumePanel";
-import { ExportPanel } from "@/components/panels/ExportPanel";
 import { ResumeLibraryPanel } from "@/components/panels/ResumeLibraryPanel";
 import { RoleLibraryPanel } from "@/components/panels/RoleLibraryPanel";
 import { ApplicationLibraryPanel } from "@/components/panels/ApplicationLibraryPanel";
@@ -60,7 +62,6 @@ const emptyInput: UserInput = {
   jdText: "",
   resumeText: "",
   extraInfo: "",
-  useCozeKnowledge: false,
 };
 
 export default function HomePage() {
@@ -79,7 +80,6 @@ export default function HomePage() {
   >([]);
   const [libraryReady, setLibraryReady] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  const [exportOpen, setExportOpen] = useState(false);
   const [providerLabel, setProviderLabel] = useState("检测中…");
   const [busy, setBusy] = useState(false);
 
@@ -120,14 +120,22 @@ export default function HomePage() {
         source?: string;
         type?: string;
         payload?: unknown;
+        mode?: string;
+        latest?: TargetRoleLibraryItem | null;
       } | null;
       if (!data || data.source !== EXT_SOURCE) return;
       if (data.type !== EXT_MSG.MERGE_ROLES) return;
       if (!Array.isArray(data.payload)) return;
 
       const incoming = data.payload as TargetRoleLibraryItem[];
+      const latest =
+        data.latest && typeof data.latest === "object" ? data.latest : null;
       setRoleLibrary((prev) => {
-        const { items, added, updated } = mergeRoleLibrary(prev, incoming);
+        const { items, added, updated } = mergeRoleLibrary(prev, incoming, {
+          respectTombstones: true,
+          clearTombstonesFor:
+            data.mode === "save" && latest ? [latest] : undefined,
+        });
         if (added === 0 && updated === 0) return prev;
         const parts: string[] = [];
         if (added > 0) parts.push(`新增 ${added} 条`);
@@ -180,6 +188,10 @@ export default function HomePage() {
   const handleStageChange = (next: JobStage) => {
     setStage(next);
     setInput((prev) => ({ ...prev, jobStage: next }));
+    setResult(null);
+    setOptimizeStyle("default");
+    setOptimizeReady(false);
+    setCustomOptimizeReq("");
     setStep("input");
   };
 
@@ -227,8 +239,7 @@ export default function HomePage() {
   };
 
   const needsOptimizeReady = (id: string) =>
-    stage === "pre_apply" &&
-    (id === "optimize" || id === "final_resume" || id === "export");
+    stage === "pre_apply" && (id === "optimize" || id === "final_resume");
 
   const handleStepClick = (id: AppStep) => {
     if (isLibraryStep(id) || id === "input") {
@@ -454,27 +465,23 @@ export default function HomePage() {
     }
   };
 
-  const reportText = useMemo(() => {
-    if (!result) return "";
-    return [
-      `【简历专家 · 分析摘要】`,
-      `目标岗位：${input.targetRole}`,
-      `匹配度：${result.diagnosis.matchScore}/100`,
-      "",
-      "主要问题：",
-      ...result.diagnosis.mainIssues.map((x, i) => `${i + 1}. ${x}`),
-      "",
-      "优先修改：",
-      ...result.diagnosis.priorityFixes.map((x, i) => `${i + 1}. ${x}`),
-    ].join("\n");
-  }, [result, input.targetRole]);
-
   const renderMain = () => {
     if (step === "role_library") {
       return (
         <RoleLibraryPanel
           items={roleLibrary}
-          onChange={setRoleLibrary}
+          onChange={(next) => {
+            const removed = roleLibrary.filter(
+              (old) => !next.some((n) => n.id === old.id)
+            );
+            if (removed.length > 0) {
+              markRolesDeleted(removed);
+              removed.forEach((item) => notifyExtensionDelete(item));
+              // 全量回写插件，避免残留条目在刷新时再次合并进来
+              notifyExtensionReplace(next);
+            }
+            setRoleLibrary(next);
+          }}
           onUse={(item) => {
             setInput((prev) => ({
               ...prev,
@@ -526,6 +533,10 @@ export default function HomePage() {
             setInput(next);
             if (next.jobStage !== stage) {
               setStage(next.jobStage);
+              setResult(null);
+              setOptimizeStyle("default");
+              setOptimizeReady(false);
+              setCustomOptimizeReq("");
               setStep("input");
             }
           }}
@@ -601,16 +612,30 @@ export default function HomePage() {
             onCopy={() =>
               copyText(formatFinalResumeText(result.finalResume), "最终简历已复制")
             }
-          />
-        );
-      if (s === "export")
-        return (
-          <ExportPanel
-            onCopyResume={() =>
-              copyText(formatFinalResumeText(result.finalResume), "最终简历已复制")
-            }
-            onCopyReport={() => copyText(reportText, "分析摘要已复制")}
-            onOpenExportDialog={() => setExportOpen(true)}
+            onSaveToLibrary={() => {
+              const text = formatFinalResumeText(result.finalResume).trim();
+              if (!text) {
+                showToast("简历内容为空，无法保存");
+                return;
+              }
+              const role =
+                input.targetRole.trim() ||
+                result.finalResume.intention.trim() ||
+                "未命名";
+              const now = new Date();
+              const stamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+              setResumeLibrary((prev) => [
+                {
+                  id: Math.random().toString(36).slice(2),
+                  name: `${role} · 优化版 ${stamp}`,
+                  updatedAt: now.toISOString(),
+                  resumeText: text,
+                  note: "由最终简历一键保存",
+                },
+                ...prev,
+              ]);
+              showToast("已保存到简历库");
+            }}
           />
         );
     }
@@ -772,26 +797,6 @@ export default function HomePage() {
 
         <main className="main">{renderMain()}</main>
       </div>
-
-      {exportOpen && (
-        <div className="dialog-backdrop" onClick={() => setExportOpen(false)}>
-          <div className="dialog" onClick={(e) => e.stopPropagation()}>
-            <h2>导出功能占位</h2>
-            <p>
-              PDF / Word / Markdown 导出将在后续版本接入真实文件生成。当前请使用「复制最终简历」或「复制分析摘要」。
-            </p>
-            <div className="row-actions" style={{ marginTop: 0 }}>
-              <button
-                type="button"
-                className="btn btn-primary btn-sm"
-                onClick={() => setExportOpen(false)}
-              >
-                知道了
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {toast ? <div className="toast">{toast}</div> : null}
     </div>
