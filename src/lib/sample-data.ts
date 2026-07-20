@@ -1,4 +1,4 @@
-import type { UserInput } from "@/types";
+import type { ApplyStep, InterviewStep, UserInput } from "@/types";
 
 export const SAMPLE_INPUT: UserInput = {
   targetRole: "AI 产品经理",
@@ -72,7 +72,7 @@ Axure、飞书文档、SQL（基础）、Excel、SmartBI、Coze、Cursor、Promp
   useCozeKnowledge: true,
 };
 
-export const APPLY_STEPS: { id: string; label: string; index: number }[] = [
+export const APPLY_STEPS: { id: ApplyStep; label: string; index: number }[] = [
   { id: "input", label: "输入材料", index: 1 },
   { id: "jd_parse", label: "JD 解析", index: 2 },
   { id: "diagnosis", label: "简历诊断", index: 3 },
@@ -83,7 +83,11 @@ export const APPLY_STEPS: { id: string; label: string; index: number }[] = [
   { id: "export", label: "导出结果", index: 8 },
 ];
 
-export const INTERVIEW_STEPS: { id: string; label: string; index: number }[] = [
+export const INTERVIEW_STEPS: {
+  id: InterviewStep;
+  label: string;
+  index: number;
+}[] = [
   { id: "input", label: "输入材料", index: 1 },
   { id: "jd_parse", label: "JD 解析", index: 2 },
   { id: "interview_match", label: "匹配分析", index: 3 },

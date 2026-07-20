@@ -83,7 +83,7 @@ export function RoleLibraryPanel({ items, onChange, onUse, onCopy }: Props) {
     <div className="panel">
       <PanelHeader
         title="目标岗位库"
-        description="存放目标岗位与 JD，新建或编辑后可在「输入材料」中直接引用。"
+        description="存放目标岗位与 JD，新建或编辑后可在「输入材料」中直接引用。也可通过浏览器插件「简历专家 · 岗位采集」从招聘页一键导入。"
       />
 
       <div className="row-actions" style={{ marginBottom: 16, marginTop: 0 }}>

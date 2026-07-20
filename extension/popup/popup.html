@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=360" />
+    <title>保存到简历专家</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header class="head">
+      <div class="brand-row">
+        <img class="brand-mark" src="../icons/icon32.png" width="28" height="28" alt="" />
+        <div class="brand-text">
+          <div class="brand-name">简历专家</div>
+          <div class="brand-sub">岗位采集</div>
+        </div>
+      </div>
+    </header>
+
+    <section id="status" class="status">正在读取当前页…</section>
+    <div id="successBanner" class="success-banner" hidden>
+      <div class="success-title" id="successTitle">已保存</div>
+      <div class="success-desc" id="successDesc">可在简历专家「目标岗位库」中查看</div>
+      <button type="button" id="btnOpenAppSuccess" class="btn primary success-btn">
+        打开简历专家
+      </button>
+    </div>
+
+    <form id="form" class="form" hidden>
+      <label>
+        岗位名称
+        <input id="targetRole" name="targetRole" required placeholder="如：AI 产品经理" />
+      </label>
+      <label>
+        公司
+        <input id="companyName" name="companyName" placeholder="如：飞书" />
+      </label>
+      <div class="row">
+        <label>
+          行业
+          <input id="industry" name="industry" placeholder="可选" />
+        </label>
+        <label>
+          公司类型
+          <input id="companyType" name="companyType" placeholder="可选" />
+        </label>
+      </div>
+      <label>
+        JD 正文
+        <textarea id="jdText" name="jdText" rows="10" required placeholder="岗位职责与要求…"></textarea>
+      </label>
+      <label>
+        来源 / 备注
+        <input id="note" name="note" placeholder="页面 URL" />
+      </label>
+      <div class="actions">
+        <button type="button" id="btnExtract" class="btn ghost">重新提取</button>
+        <button type="submit" id="btnSave" class="btn primary">保存到岗位库</button>
+      </div>
+    </form>
+
+    <footer class="foot">
+      <button type="button" id="btnOpenApp" class="link">打开简历专家</button>
+      <span id="count" class="muted"></span>
+    </footer>
+
+    <script src="../shared/constants.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>

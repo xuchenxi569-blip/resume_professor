@@ -12,11 +12,8 @@ interface Props {
   value: UserInput;
   onChange: (next: UserInput) => void;
   onLoadSample: () => void;
-  onAnalyze: () => void;
-  onClear?: () => void;
   analyzing: boolean;
   stage: JobStage;
-  hasResult?: boolean;
   libraryItems?: ResumeLibraryItem[];
   onPickResume?: (text: string) => void;
   roleLibraryItems?: TargetRoleLibraryItem[];
@@ -28,11 +25,8 @@ export function InputPanel({
   value,
   onChange,
   onLoadSample,
-  onAnalyze,
-  onClear,
   analyzing,
   stage,
-  hasResult = false,
   libraryItems = [],
   onPickResume,
   roleLibraryItems = [],
@@ -346,26 +340,8 @@ export function InputPanel({
       )}
 
       <div className="row-actions">
-        <button
-          type="button"
-          className="btn btn-primary"
-          onClick={onAnalyze}
-          disabled={analyzing || !value.jdText.trim() || !value.resumeText.trim()}
-        >
-          {analyzing ? "分析中…" : hasResult ? "重新分析" : "开始分析"}
-        </button>
-        {onClear ? (
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={onClear}
-            disabled={analyzing}
-          >
-            清空数据
-          </button>
-        ) : null}
         <span style={{ fontSize: 12, color: "var(--fg-muted)" }}>
-          已配置 DeepSeek 密钥则走大模型；否则自动使用本地 Mock
+          分析与清空请用顶部导航右侧按钮。已配置 DeepSeek 密钥则走大模型，否则自动 Mock。
         </span>
       </div>
 

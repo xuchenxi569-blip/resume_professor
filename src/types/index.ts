@@ -45,7 +45,49 @@ export interface InterviewMatchResult {
 export type StepId = ApplyStep | InterviewStep;
 
 /** 侧栏固定入口 + 流程步骤 */
-export type AppStep = StepId | "role_library" | "resume_library";
+export type AppStep =
+  | StepId
+  | "role_library"
+  | "resume_library"
+  | "application_library";
+
+/** 投递进度 */
+export type ApplicationStatus =
+  | "待投递"
+  | "已投递"
+  | "笔试中"
+  | "面试中"
+  | "已录用"
+  | "已拒绝"
+  | "已放弃";
+
+export const APPLICATION_STATUSES: ApplicationStatus[] = [
+  "待投递",
+  "已投递",
+  "笔试中",
+  "面试中",
+  "已录用",
+  "已拒绝",
+  "已放弃",
+];
+
+/** 投递记录库条目 */
+export interface ApplicationRecord {
+  id: string;
+  /** 展示用公司名（可与岗位库同步） */
+  companyName: string;
+  /** 展示用岗位名 */
+  targetRole: string;
+  /** 关联目标岗位库 id，空字符串表示未关联 */
+  roleLibraryId: string;
+  /** 关联简历库 id */
+  resumeLibraryId: string;
+  status: ApplicationStatus;
+  /** 投递日期 YYYY-MM-DD，可空 */
+  appliedAt: string;
+  note: string;
+  updatedAt: string;
+}
 
 export interface UserInput {
   targetRole: string;

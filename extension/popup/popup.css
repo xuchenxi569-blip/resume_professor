@@ -1,0 +1,190 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  width: 360px;
+  font: 13px/1.45 "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: #111113;
+  background: #f7f7f8;
+}
+
+.head {
+  padding: 14px 16px 10px;
+}
+
+.brand-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  flex-shrink: 0;
+  display: block;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.brand-name {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #111113;
+}
+
+.brand-sub {
+  font-size: 11px;
+  color: #8b8b96;
+}
+
+.status {
+  margin: 0 16px 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #f0f0f2;
+  color: #6b6b76;
+  font-size: 12px;
+}
+
+.status.is-error {
+  background: #fef3f2;
+  color: #b42318;
+}
+
+.status.is-success {
+  background: #eaf7f0;
+  color: #1a7f4b;
+}
+
+.success-banner {
+  margin: 0 16px 12px;
+  padding: 14px;
+  border-radius: 8px;
+  background: #eaf7f0;
+  border: 1px solid #c6e9d4;
+}
+
+.success-title {
+  font-size: 14px;
+  font-weight: 650;
+  color: #1a7f4b;
+}
+
+.success-desc {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #3d6b52;
+  line-height: 1.4;
+}
+
+.success-btn {
+  margin-top: 12px;
+  width: 100%;
+}
+
+.form {
+  padding: 0 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b6b76;
+}
+
+input,
+textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #e6e6ea;
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+  font-weight: 400;
+  color: #111113;
+  resize: vertical;
+}
+
+input:focus,
+textarea:focus {
+  outline: 2px solid rgba(17, 17, 19, 0.12);
+  border-color: #111113;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.btn {
+  flex: 1;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: none;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn.primary {
+  background: #111113;
+  color: #fff;
+}
+
+.btn.primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn.ghost {
+  background: #fff;
+  color: #111113;
+  border: 1px solid #e6e6ea;
+}
+
+.foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px 14px;
+  border-top: 1px solid #e6e6ea;
+}
+
+.link {
+  border: none;
+  background: none;
+  color: #111113;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  padding: 0;
+}
+
+.muted {
+  color: #8b8b96;
+  font-size: 12px;
+}

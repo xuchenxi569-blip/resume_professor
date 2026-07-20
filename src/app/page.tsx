@@ -11,12 +11,21 @@ import type {
   ResumeLibraryItem,
   TargetRoleLibraryItem,
   UserInput,
+  ApplicationRecord,
 } from "@/types";
 import { APPLY_STEPS, INTERVIEW_STEPS, SAMPLE_INPUT } from "@/lib/sample-data";
 import { formatFinalResumeText } from "@/lib/mock-ai";
 import { loadResumeLibrary, saveResumeLibrary } from "@/lib/resume-library";
 import {
+  loadApplicationLibrary,
+  saveApplicationLibrary,
+} from "@/lib/application-library";
+import {
+  EXT_MSG,
+  EXT_SOURCE,
   loadRoleLibrary,
+  mergeRoleLibrary,
+  requestExtensionSync,
   saveRoleLibrary,
 } from "@/lib/role-library";
 import { InputPanel } from "@/components/panels/InputPanel";
@@ -29,11 +38,16 @@ import { FinalResumePanel } from "@/components/panels/FinalResumePanel";
 import { ExportPanel } from "@/components/panels/ExportPanel";
 import { ResumeLibraryPanel } from "@/components/panels/ResumeLibraryPanel";
 import { RoleLibraryPanel } from "@/components/panels/RoleLibraryPanel";
+import { ApplicationLibraryPanel } from "@/components/panels/ApplicationLibraryPanel";
 import { InterviewPrepPanel } from "@/components/panels/InterviewPrepPanel";
 import { InterviewSimPanel } from "@/components/panels/InterviewSimPanel";
 import { InterviewMatchPanel } from "@/components/panels/InterviewMatchPanel";
 
-const LIBRARY_STEPS: AppStep[] = ["role_library", "resume_library"];
+const LIBRARY_STEPS: AppStep[] = [
+  "role_library",
+  "resume_library",
+  "application_library",
+];
 const isLibraryStep = (id: AppStep) => LIBRARY_STEPS.includes(id);
 
 const emptyInput: UserInput = {
@@ -60,6 +74,9 @@ export default function HomePage() {
   const [customOptimizeReq, setCustomOptimizeReq] = useState("");
   const [resumeLibrary, setResumeLibrary] = useState<ResumeLibraryItem[]>([]);
   const [roleLibrary, setRoleLibrary] = useState<TargetRoleLibraryItem[]>([]);
+  const [applicationLibrary, setApplicationLibrary] = useState<
+    ApplicationRecord[]
+  >([]);
   const [libraryReady, setLibraryReady] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
@@ -72,7 +89,10 @@ export default function HomePage() {
   useEffect(() => {
     setResumeLibrary(loadResumeLibrary());
     setRoleLibrary(loadRoleLibrary());
+    setApplicationLibrary(loadApplicationLibrary());
     setLibraryReady(true);
+    // 若已安装岗位采集插件，请求同步
+    requestExtensionSync();
   }, []);
 
   useEffect(() => {
@@ -84,6 +104,51 @@ export default function HomePage() {
     if (!libraryReady) return;
     saveRoleLibrary(roleLibrary);
   }, [roleLibrary, libraryReady]);
+
+  useEffect(() => {
+    if (!libraryReady) return;
+    saveApplicationLibrary(applicationLibrary);
+  }, [applicationLibrary, libraryReady]);
+
+  // 接收 Chrome 插件 bridge 推送的岗位库
+  useEffect(() => {
+    if (!libraryReady) return;
+
+    const onMessage = (event: MessageEvent) => {
+      if (event.source !== window) return;
+      const data = event.data as {
+        source?: string;
+        type?: string;
+        payload?: unknown;
+      } | null;
+      if (!data || data.source !== EXT_SOURCE) return;
+      if (data.type !== EXT_MSG.MERGE_ROLES) return;
+      if (!Array.isArray(data.payload)) return;
+
+      const incoming = data.payload as TargetRoleLibraryItem[];
+      setRoleLibrary((prev) => {
+        const { items, added, updated } = mergeRoleLibrary(prev, incoming);
+        if (added === 0 && updated === 0) return prev;
+        const parts: string[] = [];
+        if (added > 0) parts.push(`新增 ${added} 条`);
+        if (updated > 0) parts.push(`更新 ${updated} 条`);
+        queueMicrotask(() => {
+          setToast(`插件同步：${parts.join("，")}`);
+          window.setTimeout(() => setToast(null), 2200);
+        });
+        return items;
+      });
+    };
+
+    window.addEventListener("message", onMessage);
+    const t1 = window.setTimeout(() => requestExtensionSync(), 800);
+    const t2 = window.setTimeout(() => requestExtensionSync(), 2500);
+    return () => {
+      window.removeEventListener("message", onMessage);
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+    };
+  }, [libraryReady]);
 
   useEffect(() => {
     fetch("/api/analyze")
@@ -442,6 +507,17 @@ export default function HomePage() {
       );
     }
 
+    if (step === "application_library") {
+      return (
+        <ApplicationLibraryPanel
+          items={applicationLibrary}
+          onChange={setApplicationLibrary}
+          roleLibrary={roleLibrary}
+          resumeLibrary={resumeLibrary}
+        />
+      );
+    }
+
     if (step === "input") {
       return (
         <InputPanel
@@ -454,11 +530,8 @@ export default function HomePage() {
             }
           }}
           onLoadSample={handleLoadSample}
-          onAnalyze={handleAnalyze}
-          onClear={handleClearData}
           analyzing={analyzing}
           stage={stage}
-          hasResult={analyzed}
           libraryItems={resumeLibrary}
           onPickResume={(text) => {
             setInput((prev) => ({ ...prev, resumeText: text }));
@@ -578,35 +651,57 @@ export default function HomePage() {
   return (
     <div className="app-shell">
       <header className="topnav">
-        <div className="brand">
-          <div className="brand-mark">简</div>
-          <div className="brand-text">
-            <div className="brand-name">简历专家</div>
-            <div className="brand-sub">JD 定制简历优化 Agent</div>
+        <div className="topnav-left">
+          <div className="brand">
+            <div className="brand-mark">简</div>
+            <div className="brand-text">
+              <div className="brand-name">简历专家</div>
+              <div className="brand-sub">JD 定制简历优化 Agent</div>
+            </div>
+          </div>
+
+          <div className="stage-switch" role="tablist" aria-label="求职阶段">
+            <button
+              type="button"
+              className={`stage-btn ${stage === "pre_apply" ? "active" : ""}`}
+              onClick={() => handleStageChange("pre_apply")}
+            >
+              投递前
+            </button>
+            <button
+              type="button"
+              className={`stage-btn ${stage === "pre_interview" ? "active" : ""}`}
+              onClick={() => handleStageChange("pre_interview")}
+            >
+              面试前
+            </button>
           </div>
         </div>
 
-        <div className="stage-switch" role="tablist" aria-label="求职阶段">
-          <button
-            type="button"
-            className={`stage-btn ${stage === "pre_apply" ? "active" : ""}`}
-            onClick={() => handleStageChange("pre_apply")}
-          >
-            投递前
-          </button>
-          <button
-            type="button"
-            className={`stage-btn ${stage === "pre_interview" ? "active" : ""}`}
-            onClick={() => handleStageChange("pre_interview")}
-          >
-            面试前
-          </button>
-        </div>
-
         <div className="topnav-right">
-          <span>{analyzed ? "已分析" : "待分析"}</span>
-          <span>·</span>
-          <span>{providerLabel}</span>
+          <span className="topnav-status">
+            {analyzed ? "已分析" : "待分析"}
+            <span className="topnav-status-sep">·</span>
+            {providerLabel}
+          </span>
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            onClick={handleAnalyze}
+            disabled={
+              analyzing || !input.jdText.trim() || !input.resumeText.trim()
+            }
+          >
+            {analyzing ? "分析中…" : analyzed ? "重新分析" : "开始分析"}
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={handleClearData}
+            disabled={analyzing}
+          >
+            清空数据
+          </button>
         </div>
       </header>
 
@@ -633,6 +728,16 @@ export default function HomePage() {
                 <span className="step-label">简历库</span>
               </button>
             </li>
+            <li>
+              <button
+                type="button"
+                className={`step-item step-item-fixed ${step === "application_library" ? "active" : ""}`}
+                onClick={() => handleStepClick("application_library")}
+              >
+                <span className="step-index step-index-icon">投</span>
+                <span className="step-label">投递记录库</span>
+              </button>
+            </li>
           </ul>
 
           <div className="sidenav-divider" />
@@ -654,7 +759,7 @@ export default function HomePage() {
                     type="button"
                     className={`step-item ${active ? "active" : ""} ${done ? "done" : ""}`}
                     disabled={!enabled}
-                    onClick={() => handleStepClick(s.id)}
+                    onClick={() => handleStepClick(s.id as AppStep)}
                   >
                     <span className="step-index">{s.index}</span>
                     <span className="step-label">{s.label}</span>
@@ -663,29 +768,6 @@ export default function HomePage() {
               );
             })}
           </ul>
-
-          <div className="sidenav-actions">
-            <button
-              type="button"
-              className="btn btn-primary btn-sm"
-              style={{ width: "100%" }}
-              onClick={handleAnalyze}
-              disabled={
-                analyzing || !input.jdText.trim() || !input.resumeText.trim()
-              }
-            >
-              {analyzing ? "分析中…" : analyzed ? "重新分析" : "开始分析"}
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              style={{ width: "100%" }}
-              onClick={handleClearData}
-              disabled={analyzing}
-            >
-              清空数据
-            </button>
-          </div>
         </aside>
 
         <main className="main">{renderMain()}</main>
