@@ -62,13 +62,7 @@ export function buildAnalysisUserPrompt(input: UserInput): string {
 【目标/面试岗位】
 ${input.targetRole || "（未填）"}
 
-【行业】
-${input.industry || "（未填）"}
-
-【公司类型】
-${input.companyType || "（未填）"}
-
-【公司全称】
+【公司名称】
 ${input.companyName || "（未填）"}
 
 【希望突出能力】

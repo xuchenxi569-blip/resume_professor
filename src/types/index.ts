@@ -92,7 +92,7 @@ export interface UserInput {
   targetRole: string;
   industry: string;
   companyType: string;
-  /** 面试前：公司全称 */
+  /** 面试前：公司名称 */
   companyName: string;
   jobStage: JobStage;
   highlightSkills: string;

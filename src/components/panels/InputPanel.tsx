@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import type {
   UserInput,
   JobStage,
@@ -17,8 +18,12 @@ interface Props {
   libraryItems?: ResumeLibraryItem[];
   onPickResume?: (text: string) => void;
   roleLibraryItems?: TargetRoleLibraryItem[];
+  selectedRoleId?: string;
   onPickRole?: (item: TargetRoleLibraryItem) => void;
   onOpenRoleLibrary?: () => void;
+  onUploadResume?: (file: File) => void | Promise<void>;
+  uploadingResume?: boolean;
+  uploadedResumeName?: string | null;
 }
 
 export function InputPanel({
@@ -30,13 +35,58 @@ export function InputPanel({
   libraryItems = [],
   onPickResume,
   roleLibraryItems = [],
+  selectedRoleId = "",
   onPickRole,
   onOpenRoleLibrary,
+  onUploadResume,
+  uploadingResume = false,
+  uploadedResumeName = null,
 }: Props) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const set = <K extends keyof UserInput>(key: K, v: UserInput[K]) =>
     onChange({ ...value, [key]: v });
 
   const isInterview = stage === "pre_interview";
+  const busy = analyzing || uploadingResume;
+
+  const selectedStillExists = roleLibraryItems.some((x) => x.id === selectedRoleId);
+  const roleSelectValue = selectedStillExists ? selectedRoleId : "";
+
+  const resumeUpload = onUploadResume ? (
+    <>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".txt,.md,.docx,.pdf,text/plain,text/markdown,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        style={{ display: "none" }}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          if (file) void onUploadResume(file);
+        }}
+      />
+      <button
+        type="button"
+        className="btn btn-secondary btn-sm"
+        disabled={busy}
+        onClick={() => fileInputRef.current?.click()}
+      >
+        {uploadingResume ? "解析中…" : "上传文件"}
+      </button>
+    </>
+  ) : null;
+
+  const resumeUploadHint = onUploadResume ? (
+    <p className="hint" style={{ marginBottom: 10, color: "var(--fg-muted)", fontSize: 12 }}>
+      支持 .txt / .md / .docx / .pdf（≤5MB）。扫描版 PDF 可能抽不出文字，建议用可复制文本的文件或直接粘贴。
+      {uploadedResumeName ? (
+        <>
+          {" "}
+          最近导入：<span style={{ color: "var(--fg)" }}>{uploadedResumeName}</span>
+        </>
+      ) : null}
+    </p>
+  ) : null;
 
   const rolePicker = onPickRole ? (
     <div className="field library-import" style={{ marginBottom: 12 }}>
@@ -44,8 +94,8 @@ export function InputPanel({
       <div className="library-import-row">
         <select
           className="select"
-          value=""
-          disabled={analyzing || roleLibraryItems.length === 0}
+          value={roleSelectValue}
+          disabled={busy || roleLibraryItems.length === 0}
           onChange={(e) => {
             const item = roleLibraryItems.find((x) => x.id === e.target.value);
             if (item) onPickRole(item);
@@ -71,7 +121,7 @@ export function InputPanel({
             type="button"
             className="btn btn-secondary btn-sm"
             onClick={onOpenRoleLibrary}
-            disabled={analyzing}
+            disabled={busy}
           >
             {roleLibraryItems.length === 0 ? "去添加" : "管理"}
           </button>
@@ -90,7 +140,7 @@ export function InputPanel({
             type="button"
             className="btn btn-secondary btn-sm"
             onClick={() => onPickResume(item.resumeText)}
-            disabled={analyzing || !item.resumeText.trim()}
+            disabled={busy || !item.resumeText.trim()}
             title={item.note || item.name}
           >
             {item.name}
@@ -121,12 +171,17 @@ export function InputPanel({
                     type="button"
                     className="btn btn-secondary btn-sm"
                     onClick={onOpenRoleLibrary}
-                    disabled={analyzing}
+                    disabled={busy}
                   >
                     目标岗位库
                   </button>
                 ) : null}
-                <button type="button" className="btn btn-secondary btn-sm" onClick={onLoadSample}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={onLoadSample}
+                  disabled={busy}
+                >
                   使用示例数据
                 </button>
               </div>
@@ -143,7 +198,7 @@ export function InputPanel({
                 />
               </div>
               <div className="field">
-                <label>公司全称</label>
+                <label>公司名称</label>
                 <input
                   className="input"
                   value={value.companyName}
@@ -167,14 +222,19 @@ export function InputPanel({
           </div>
 
           <div className="card">
-            <div className="card-title">简历信息</div>
+            <div className="card-title">
+              <span>简历信息</span>
+              {resumeUpload}
+            </div>
+            {resumeUploadHint}
             {libraryPicker}
             <div className="field">
               <textarea
                 className="textarea tall"
                 value={value.resumeText}
                 onChange={(e) => set("resumeText", e.target.value)}
-                placeholder="粘贴简历文本…"
+                placeholder="粘贴简历文本，或上传文件自动导入…"
+                disabled={uploadingResume}
               />
             </div>
           </div>
@@ -202,12 +262,17 @@ export function InputPanel({
                     type="button"
                     className="btn btn-secondary btn-sm"
                     onClick={onOpenRoleLibrary}
-                    disabled={analyzing}
+                    disabled={busy}
                   >
                     目标岗位库
                   </button>
                 ) : null}
-                <button type="button" className="btn btn-secondary btn-sm" onClick={onLoadSample}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={onLoadSample}
+                  disabled={busy}
+                >
                   使用示例数据
                 </button>
               </div>
@@ -224,21 +289,12 @@ export function InputPanel({
                 />
               </div>
               <div className="field">
-                <label>行业</label>
+                <label>公司名称</label>
                 <input
                   className="input"
-                  value={value.industry}
-                  onChange={(e) => set("industry", e.target.value)}
-                  placeholder="如：企业服务 / AI SaaS"
-                />
-              </div>
-              <div className="field">
-                <label>公司类型</label>
-                <input
-                  className="input"
-                  value={value.companyType}
-                  onChange={(e) => set("companyType", e.target.value)}
-                  placeholder="如：ToB SaaS 成长期"
+                  value={value.companyName}
+                  onChange={(e) => set("companyName", e.target.value)}
+                  placeholder="如：星河智能科技（杭州）有限公司"
                 />
               </div>
               <div className="field">
@@ -277,14 +333,19 @@ export function InputPanel({
           </div>
 
           <div className="card">
-            <div className="card-title">原始简历</div>
+            <div className="card-title">
+              <span>原始简历</span>
+              {resumeUpload}
+            </div>
+            {resumeUploadHint}
             {libraryPicker}
             <div className="field">
               <textarea
                 className="textarea tall"
                 value={value.resumeText}
                 onChange={(e) => set("resumeText", e.target.value)}
-                placeholder="粘贴原始简历文本…"
+                placeholder="粘贴原始简历文本，或上传文件自动导入…"
+                disabled={uploadingResume}
               />
             </div>
           </div>
@@ -309,7 +370,7 @@ export function InputPanel({
         </span>
       </div>
 
-      {analyzing && (
+      {(analyzing || uploadingResume) && (
         <div className="loading-bar">
           <span />
         </div>

@@ -75,6 +75,7 @@ export default function HomePage() {
   const [customOptimizeReq, setCustomOptimizeReq] = useState("");
   const [resumeLibrary, setResumeLibrary] = useState<ResumeLibraryItem[]>([]);
   const [roleLibrary, setRoleLibrary] = useState<TargetRoleLibraryItem[]>([]);
+  const [selectedRoleId, setSelectedRoleId] = useState("");
   const [applicationLibrary, setApplicationLibrary] = useState<
     ApplicationRecord[]
   >([]);
@@ -82,6 +83,10 @@ export default function HomePage() {
   const [toast, setToast] = useState<string | null>(null);
   const [providerLabel, setProviderLabel] = useState("检测中…");
   const [busy, setBusy] = useState(false);
+  const [uploadingResume, setUploadingResume] = useState(false);
+  const [uploadedResumeName, setUploadedResumeName] = useState<string | null>(
+    null
+  );
 
   const steps = stage === "pre_apply" ? APPLY_STEPS : INTERVIEW_STEPS;
   const analyzed = Boolean(result);
@@ -195,12 +200,26 @@ export default function HomePage() {
     setStep("input");
   };
 
+  const applyRoleFromLibrary = (item: TargetRoleLibraryItem) => {
+    setSelectedRoleId(item.id);
+    setInput((prev) => ({
+      ...prev,
+      targetRole: item.targetRole || prev.targetRole,
+      companyName: item.companyName || prev.companyName,
+      jdText: item.jdText || prev.jdText,
+    }));
+  };
+
   const handleLoadSample = () => {
+    setSelectedRoleId("");
+    setUploadedResumeName(null);
     setInput({ ...SAMPLE_INPUT, jobStage: stage });
     showToast("已填入示例数据");
   };
 
   const handleClearData = () => {
+    setSelectedRoleId("");
+    setUploadedResumeName(null);
     setInput({ ...emptyInput, jobStage: stage });
     setResult(null);
     setOptimizeStyle("default");
@@ -208,6 +227,33 @@ export default function HomePage() {
     setCustomOptimizeReq("");
     setStep("input");
     showToast("已清空数据");
+  };
+
+  const handleUploadResume = async (file: File) => {
+    if (uploadingResume || analyzing) return;
+    setUploadingResume(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/parse-resume", {
+        method: "POST",
+        body: form,
+      });
+      const data = (await res.json()) as {
+        text?: string;
+        filename?: string;
+        error?: string;
+      };
+      if (!res.ok) throw new Error(data.error || "解析失败");
+      if (!data.text?.trim()) throw new Error("未能提取到文本");
+      setInput((prev) => ({ ...prev, resumeText: data.text! }));
+      setUploadedResumeName(data.filename || file.name);
+      showToast("已从文件导入");
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "上传解析失败");
+    } finally {
+      setUploadingResume(false);
+    }
   };
 
   const handleAnalyze = async () => {
@@ -483,14 +529,7 @@ export default function HomePage() {
             setRoleLibrary(next);
           }}
           onUse={(item) => {
-            setInput((prev) => ({
-              ...prev,
-              targetRole: item.targetRole || prev.targetRole,
-              industry: item.industry || prev.industry,
-              companyType: item.companyType || prev.companyType,
-              companyName: item.companyName || prev.companyName,
-              jdText: item.jdText || prev.jdText,
-            }));
+            applyRoleFromLibrary(item);
             setStep("input");
             showToast("已填入目标岗位与 JD");
           }}
@@ -549,18 +588,15 @@ export default function HomePage() {
             showToast("已从简历库填入");
           }}
           roleLibraryItems={roleLibrary}
+          selectedRoleId={selectedRoleId}
           onPickRole={(item) => {
-            setInput((prev) => ({
-              ...prev,
-              targetRole: item.targetRole || prev.targetRole,
-              industry: item.industry || prev.industry,
-              companyType: item.companyType || prev.companyType,
-              companyName: item.companyName || prev.companyName,
-              jdText: item.jdText || prev.jdText,
-            }));
+            applyRoleFromLibrary(item);
             showToast("已从目标岗位库填入");
           }}
           onOpenRoleLibrary={() => setStep("role_library")}
+          onUploadResume={handleUploadResume}
+          uploadingResume={uploadingResume}
+          uploadedResumeName={uploadedResumeName}
         />
       );
     }
