@@ -542,8 +542,17 @@ export async function runMockAnalysis(input: UserInput): Promise<AnalysisResult>
       },
     ],
     probes,
-    optimizeRows: buildOptimizeRows("default"),
-    finalResume: buildFinalResume(input, "default"),
+    optimizeRows: [],
+    finalResume: {
+      personalInfo: "",
+      intention: "",
+      summary: "",
+      coreSkills: [],
+      workExperience: [],
+      projects: [],
+      tools: [],
+      education: "",
+    },
     interviewMatch: {
       fitPoints: [
         {
@@ -710,12 +719,70 @@ export async function runMockAnalysis(input: UserInput): Promise<AnalysisResult>
 
 export function regenerateOptimize(
   input: UserInput,
-  style: OptimizeStyle
+  style: OptimizeStyle,
+  customRequirement = ""
 ): { optimizeRows: OptimizeRow[]; finalResume: FinalResume } {
-  return {
+  const base = {
     optimizeRows: buildOptimizeRows(style),
     finalResume: buildFinalResume(input, style),
   };
+
+  const req = customRequirement.trim();
+  if (!req) return base;
+
+  const preview = req.length > 80 ? `${req.slice(0, 80)}…` : req;
+  return {
+    optimizeRows: [
+      {
+        id: "custom-req",
+        before: "（按用户自定义优化需求调整）",
+        after: `已按需求调整表达与结构侧重：${preview}`,
+        reason: `响应用户自定义优化需求：${preview}`,
+        risk: "自定义需求若含未证实事实，请人工核对后再投递",
+      },
+      ...base.optimizeRows,
+    ].slice(0, 8),
+    finalResume: {
+      ...base.finalResume,
+      summary: `${base.finalResume.summary}\n（已参考自定义需求：${preview}）`,
+    },
+  };
+}
+
+export async function runMockProbeOptimize(
+  input: UserInput,
+  probes: ProbeCard[],
+  style: OptimizeStyle = "default"
+): Promise<{ optimizeRows: OptimizeRow[]; finalResume: FinalResume }> {
+  await delay(700);
+  const base = regenerateOptimize(input, style);
+  const bullets = probes
+    .map((p) =>
+      p.generatedBullet.trim()
+        ? p.generatedBullet.trim()
+        : p.answer.trim()
+          ? generateBulletFromAnswer(p.question, p.answer)
+          : ""
+    )
+    .filter(Boolean);
+
+  if (bullets.length > 0) {
+    base.finalResume.projects = [
+      ...base.finalResume.projects,
+      "追问补强论据",
+      ...bullets,
+    ];
+    const extraRows: OptimizeRow[] = bullets.slice(0, 2).map((b, i) => ({
+      id: `probe-${i + 1}`,
+      before: "（原简历证据薄弱，追问后补充）",
+      after: b,
+      reason: "将追问回答转化为可核验简历论据，支撑「非我不可」论点",
+      risk: "需确保与面试口述一致，避免过度包装",
+    }));
+    base.optimizeRows = [...extraRows, ...base.optimizeRows].slice(0, 8);
+  }
+
+  return base;
 }
 
 export function generateBulletFromAnswer(question: string, answer: string): string {
@@ -796,16 +863,16 @@ export function formatFinalResumeText(resume: FinalResume): string {
     resume.summary,
     "",
     "【核心能力】",
-    ...resume.coreSkills.map((s) => `· ${s}`),
+    ...resume.coreSkills.filter((s) => s.trim()).map((s) => `· ${s}`),
     "",
     "【工作经历】",
-    ...resume.workExperience,
+    ...resume.workExperience.filter((s) => s.trim()),
     "",
     "【项目经历】",
-    ...resume.projects,
+    ...resume.projects.filter((s) => s.trim()),
     "",
     "【技能工具】",
-    ...resume.tools.map((s) => `· ${s}`),
+    ...resume.tools.filter((s) => s.trim()).map((s) => `· ${s}`),
     "",
     "【教育背景】",
     resume.education,

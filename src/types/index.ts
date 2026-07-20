@@ -44,6 +44,9 @@ export interface InterviewMatchResult {
 
 export type StepId = ApplyStep | InterviewStep;
 
+/** 侧栏固定入口 + 流程步骤 */
+export type AppStep = StepId | "role_library" | "resume_library";
+
 export interface UserInput {
   targetRole: string;
   industry: string;
@@ -145,6 +148,27 @@ export interface InterviewQA {
   userAnswer: string;
   optimizedAnswer: string;
   feedback: string;
+}
+
+export interface ResumeLibraryItem {
+  id: string;
+  name: string;
+  updatedAt: string; // ISO 日期字符串
+  resumeText: string;
+  note: string;
+}
+
+/** 目标岗位库条目 */
+export interface TargetRoleLibraryItem {
+  id: string;
+  name: string;
+  updatedAt: string;
+  targetRole: string;
+  industry: string;
+  companyType: string;
+  companyName: string;
+  jdText: string;
+  note: string;
 }
 
 export interface AnalysisResult {

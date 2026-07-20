@@ -3,14 +3,22 @@
 import { useEffect, useMemo, useState } from "react";
 import type {
   AnalysisResult,
+  AppStep,
   ApplyStep,
   InterviewStep,
   JobStage,
   OptimizeStyle,
+  ResumeLibraryItem,
+  TargetRoleLibraryItem,
   UserInput,
 } from "@/types";
 import { APPLY_STEPS, INTERVIEW_STEPS, SAMPLE_INPUT } from "@/lib/sample-data";
 import { formatFinalResumeText } from "@/lib/mock-ai";
+import { loadResumeLibrary, saveResumeLibrary } from "@/lib/resume-library";
+import {
+  loadRoleLibrary,
+  saveRoleLibrary,
+} from "@/lib/role-library";
 import { InputPanel } from "@/components/panels/InputPanel";
 import { JdParsePanel } from "@/components/panels/JdParsePanel";
 import { DiagnosisPanel } from "@/components/panels/DiagnosisPanel";
@@ -19,9 +27,14 @@ import { ProbePanel } from "@/components/panels/ProbePanel";
 import { OptimizePanel } from "@/components/panels/OptimizePanel";
 import { FinalResumePanel } from "@/components/panels/FinalResumePanel";
 import { ExportPanel } from "@/components/panels/ExportPanel";
+import { ResumeLibraryPanel } from "@/components/panels/ResumeLibraryPanel";
+import { RoleLibraryPanel } from "@/components/panels/RoleLibraryPanel";
 import { InterviewPrepPanel } from "@/components/panels/InterviewPrepPanel";
 import { InterviewSimPanel } from "@/components/panels/InterviewSimPanel";
 import { InterviewMatchPanel } from "@/components/panels/InterviewMatchPanel";
+
+const LIBRARY_STEPS: AppStep[] = ["role_library", "resume_library"];
+const isLibraryStep = (id: AppStep) => LIBRARY_STEPS.includes(id);
 
 const emptyInput: UserInput = {
   targetRole: "",
@@ -38,11 +51,16 @@ const emptyInput: UserInput = {
 
 export default function HomePage() {
   const [stage, setStage] = useState<JobStage>("pre_apply");
-  const [step, setStep] = useState<string>("input");
+  const [step, setStep] = useState<AppStep>("input");
   const [input, setInput] = useState<UserInput>(emptyInput);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [optimizeStyle, setOptimizeStyle] = useState<OptimizeStyle>("default");
+  const [optimizeReady, setOptimizeReady] = useState(false);
+  const [customOptimizeReq, setCustomOptimizeReq] = useState("");
+  const [resumeLibrary, setResumeLibrary] = useState<ResumeLibraryItem[]>([]);
+  const [roleLibrary, setRoleLibrary] = useState<TargetRoleLibraryItem[]>([]);
+  const [libraryReady, setLibraryReady] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
   const [providerLabel, setProviderLabel] = useState("检测中…");
@@ -50,6 +68,22 @@ export default function HomePage() {
 
   const steps = stage === "pre_apply" ? APPLY_STEPS : INTERVIEW_STEPS;
   const analyzed = Boolean(result);
+
+  useEffect(() => {
+    setResumeLibrary(loadResumeLibrary());
+    setRoleLibrary(loadRoleLibrary());
+    setLibraryReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!libraryReady) return;
+    saveResumeLibrary(resumeLibrary);
+  }, [resumeLibrary, libraryReady]);
+
+  useEffect(() => {
+    if (!libraryReady) return;
+    saveRoleLibrary(roleLibrary);
+  }, [roleLibrary, libraryReady]);
 
   useEffect(() => {
     fetch("/api/analyze")
@@ -93,6 +127,8 @@ export default function HomePage() {
     setInput({ ...emptyInput, jobStage: stage });
     setResult(null);
     setOptimizeStyle("default");
+    setOptimizeReady(false);
+    setCustomOptimizeReq("");
     setStep("input");
     showToast("已清空数据");
   };
@@ -109,6 +145,8 @@ export default function HomePage() {
       if (!res.ok) throw new Error(data.error || "分析失败");
       setResult(data.result);
       setOptimizeStyle("default");
+      setOptimizeReady(false);
+      setCustomOptimizeReq("");
       setStep("jd_parse");
       setProviderLabel(
         data.provider === "deepseek" ? "DeepSeek" : "Mock AI"
@@ -123,12 +161,17 @@ export default function HomePage() {
     }
   };
 
-  const handleStepClick = (id: string) => {
-    if (id === "input") {
+  const needsOptimizeReady = (id: string) =>
+    stage === "pre_apply" &&
+    (id === "optimize" || id === "final_resume" || id === "export");
+
+  const handleStepClick = (id: AppStep) => {
+    if (isLibraryStep(id) || id === "input") {
       setStep(id);
       return;
     }
     if (!analyzed) return;
+    if (needsOptimizeReady(id) && !optimizeReady) return;
     setStep(id);
   };
 
@@ -202,8 +245,50 @@ export default function HomePage() {
     }
   };
 
-  const handleStyleChange = async (style: OptimizeStyle) => {
+  const handleProbeToOptimize = async () => {
     if (!result || busy) return;
+    setBusy(true);
+    try {
+      const res = await fetch("/api/optimize-probe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          input: { ...input, jobStage: stage },
+          probes: result.probes,
+          style: optimizeStyle,
+          idealCandidate: result.jd.idealCandidate,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "简历优化失败");
+      setResult({
+        ...result,
+        optimizeRows: data.optimizeRows,
+        finalResume: data.finalResume,
+      });
+      setOptimizeReady(true);
+      setStep("optimize");
+      setProviderLabel(
+        data.provider === "deepseek" ? "DeepSeek" : "Mock AI"
+      );
+      showToast(
+        data.provider === "deepseek"
+          ? "已基于追问结果生成优化简历"
+          : "Mock 已生成优化简历"
+      );
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "简历优化失败");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const runOptimizeRewrite = async (
+    style: OptimizeStyle,
+    customRequirement: string,
+    okMsg: string
+  ) => {
+    if (!result || busy || !optimizeReady) return;
     setBusy(true);
     setOptimizeStyle(style);
     try {
@@ -214,21 +299,47 @@ export default function HomePage() {
           input,
           style,
           currentResume: result.finalResume,
+          customRequirement: customRequirement.trim() || undefined,
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "风格优化失败");
+      if (!res.ok) throw new Error(data.error || "优化失败");
       setResult({
         ...result,
         optimizeRows: data.optimizeRows,
         finalResume: data.finalResume,
       });
-      showToast("已按风格重写");
+      showToast(okMsg);
     } catch (e) {
-      showToast(e instanceof Error ? e.message : "风格优化失败");
+      showToast(e instanceof Error ? e.message : "优化失败");
     } finally {
       setBusy(false);
     }
+  };
+
+  const handleStyleChange = (style: OptimizeStyle) => {
+    void runOptimizeRewrite(
+      style,
+      customOptimizeReq,
+      customOptimizeReq.trim() ? "已按风格与自定义需求重写" : "已按风格重写"
+    );
+  };
+
+  const handleApplyCustomOptimize = () => {
+    if (!customOptimizeReq.trim()) {
+      showToast("请先填写自定义优化需求");
+      return;
+    }
+    void runOptimizeRewrite(
+      optimizeStyle,
+      customOptimizeReq,
+      "已按自定义需求重新优化"
+    );
+  };
+
+  const updateFinalResume = (next: AnalysisResult["finalResume"]) => {
+    if (!result) return;
+    setResult({ ...result, finalResume: next });
   };
 
   const updateInterviewAnswer = (id: string, answer: string) => {
@@ -294,6 +405,43 @@ export default function HomePage() {
   }, [result, input.targetRole]);
 
   const renderMain = () => {
+    if (step === "role_library") {
+      return (
+        <RoleLibraryPanel
+          items={roleLibrary}
+          onChange={setRoleLibrary}
+          onUse={(item) => {
+            setInput((prev) => ({
+              ...prev,
+              targetRole: item.targetRole || prev.targetRole,
+              industry: item.industry || prev.industry,
+              companyType: item.companyType || prev.companyType,
+              companyName: item.companyName || prev.companyName,
+              jdText: item.jdText || prev.jdText,
+            }));
+            setStep("input");
+            showToast("已填入目标岗位与 JD");
+          }}
+          onCopy={(text) => copyText(text, "岗位信息已复制")}
+        />
+      );
+    }
+
+    if (step === "resume_library") {
+      return (
+        <ResumeLibraryPanel
+          items={resumeLibrary}
+          onChange={setResumeLibrary}
+          onUse={(text) => {
+            setInput((prev) => ({ ...prev, resumeText: text }));
+            setStep("input");
+            showToast("已填入输入材料");
+          }}
+          onCopy={(text) => copyText(text, "简历已复制")}
+        />
+      );
+    }
+
     if (step === "input") {
       return (
         <InputPanel
@@ -311,6 +459,24 @@ export default function HomePage() {
           analyzing={analyzing}
           stage={stage}
           hasResult={analyzed}
+          libraryItems={resumeLibrary}
+          onPickResume={(text) => {
+            setInput((prev) => ({ ...prev, resumeText: text }));
+            showToast("已从简历库填入");
+          }}
+          roleLibraryItems={roleLibrary}
+          onPickRole={(item) => {
+            setInput((prev) => ({
+              ...prev,
+              targetRole: item.targetRole || prev.targetRole,
+              industry: item.industry || prev.industry,
+              companyType: item.companyType || prev.companyType,
+              companyName: item.companyName || prev.companyName,
+              jdText: item.jdText || prev.jdText,
+            }));
+            showToast("已从目标岗位库填入");
+          }}
+          onOpenRoleLibrary={() => setStep("role_library")}
         />
       );
     }
@@ -337,6 +503,8 @@ export default function HomePage() {
             onAnswerChange={updateProbeAnswer}
             onGenerateBullet={generateProbeBullet}
             onGenerateAll={generateAllBullets}
+            onNextStep={handleProbeToOptimize}
+            nextLoading={busy}
           />
         );
       if (s === "optimize")
@@ -344,13 +512,19 @@ export default function HomePage() {
           <OptimizePanel
             rows={result.optimizeRows}
             style={optimizeStyle}
+            customRequirement={customOptimizeReq}
+            onCustomRequirementChange={setCustomOptimizeReq}
             onStyleChange={handleStyleChange}
+            onApplyCustom={handleApplyCustomOptimize}
+            ready={optimizeReady}
+            busy={busy}
           />
         );
       if (s === "final_resume")
         return (
           <FinalResumePanel
             resume={result.finalResume}
+            onChange={updateFinalResume}
             onCopy={() =>
               copyText(formatFinalResumeText(result.finalResume), "最终简历已复制")
             }
@@ -394,9 +568,11 @@ export default function HomePage() {
     return null;
   };
 
-  const stepReached = (id: string) => {
-    if (id === "input") return true;
-    return analyzed;
+  const stepReached = (id: AppStep) => {
+    if (isLibraryStep(id) || id === "input") return true;
+    if (!analyzed) return false;
+    if (needsOptimizeReady(id)) return optimizeReady;
+    return true;
   };
 
   return (
@@ -436,16 +612,42 @@ export default function HomePage() {
 
       <div className="workspace">
         <aside className="sidenav">
+          <ul className="step-list sidenav-fixed">
+            <li>
+              <button
+                type="button"
+                className={`step-item step-item-fixed ${step === "role_library" ? "active" : ""}`}
+                onClick={() => handleStepClick("role_library")}
+              >
+                <span className="step-index step-index-icon">岗</span>
+                <span className="step-label">目标岗位库</span>
+              </button>
+            </li>
+            <li>
+              <button
+                type="button"
+                className={`step-item step-item-fixed ${step === "resume_library" ? "active" : ""}`}
+                onClick={() => handleStepClick("resume_library")}
+              >
+                <span className="step-index step-index-icon">库</span>
+                <span className="step-label">简历库</span>
+              </button>
+            </li>
+          </ul>
+
+          <div className="sidenav-divider" />
+
           <div className="sidenav-title">
             {stage === "pre_apply" ? "投递前流程" : "面试前流程"}
           </div>
           <ul className="step-list">
             {steps.map((s) => {
+              const flowIndex = steps.findIndex((x) => x.id === step);
+              const selfIndex = steps.findIndex((x) => x.id === s.id);
               const done =
-                analyzed &&
-                steps.findIndex((x) => x.id === step) > steps.findIndex((x) => x.id === s.id);
+                analyzed && flowIndex > selfIndex && !isLibraryStep(step);
               const active = step === s.id;
-              const enabled = stepReached(s.id);
+              const enabled = stepReached(s.id as AppStep);
               return (
                 <li key={s.id}>
                   <button

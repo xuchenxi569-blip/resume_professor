@@ -3,14 +3,17 @@ import type {
   FinalResume,
   OptimizeRow,
   OptimizeStyle,
+  ProbeCard,
   UserInput,
 } from "@/types";
 import {
   ANALYSIS_SYSTEM,
   ANSWER_SYSTEM,
   BULLET_SYSTEM,
+  PROBE_OPTIMIZE_SYSTEM,
   STYLE_SYSTEM,
   buildAnalysisUserPrompt,
+  buildProbeOptimizePrompt,
   buildStyleUserPrompt,
 } from "@/lib/ai-prompts";
 import {
@@ -25,6 +28,7 @@ import {
   optimizeInterviewAnswer,
   regenerateOptimize,
   runMockAnalysis,
+  runMockProbeOptimize,
 } from "@/lib/mock-ai";
 
 export type AiProvider = "deepseek" | "mock";
@@ -47,13 +51,26 @@ export async function runAnalysis(
 
   const parsed = extractJsonObject(content);
   const result = normalizeAnalysisResult(parsed);
+  // 分析轮只出诊断/匹配/追问；优化在追问完成后再生成
+  result.optimizeRows = [];
+  result.finalResume = {
+    personalInfo: "",
+    intention: "",
+    summary: "",
+    coreSkills: [],
+    workExperience: [],
+    projects: [],
+    tools: [],
+    education: "",
+  };
   return { result, provider: "deepseek" };
 }
 
-export async function runStyleOptimize(
+export async function runProbeOptimize(
   input: UserInput,
+  probes: ProbeCard[],
   style: OptimizeStyle,
-  currentResume: FinalResume,
+  idealCandidate: string,
   options?: { forceMock?: boolean }
 ): Promise<{
   optimizeRows: OptimizeRow[];
@@ -61,13 +78,61 @@ export async function runStyleOptimize(
   provider: AiProvider;
 }> {
   if (options?.forceMock || !isDeepSeekConfigured()) {
-    const data = regenerateOptimize(input, style);
+    const data = await runMockProbeOptimize(input, probes, style);
+    return { ...data, provider: "mock" };
+  }
+
+  const content = await chatCompletion({
+    system: PROBE_OPTIMIZE_SYSTEM,
+    user: buildProbeOptimizePrompt(input, probes, style, idealCandidate),
+    temperature: 0.3,
+    maxTokens: 8192,
+  });
+
+  const parsed = extractJsonObject(content) as Record<string, unknown>;
+  const normalized = normalizeAnalysisResult({
+    optimizeRows: parsed.optimizeRows,
+    finalResume: parsed.finalResume,
+  });
+
+  const mockFallback = await runMockProbeOptimize(input, probes, style);
+
+  return {
+    optimizeRows: normalized.optimizeRows.length
+      ? normalized.optimizeRows
+      : mockFallback.optimizeRows,
+    finalResume: normalized.finalResume.summary
+      ? normalized.finalResume
+      : mockFallback.finalResume,
+    provider: "deepseek",
+  };
+}
+
+export async function runStyleOptimize(
+  input: UserInput,
+  style: OptimizeStyle,
+  currentResume: FinalResume,
+  options?: { forceMock?: boolean; customRequirement?: string }
+): Promise<{
+  optimizeRows: OptimizeRow[];
+  finalResume: FinalResume;
+  provider: AiProvider;
+}> {
+  const customRequirement = options?.customRequirement?.trim() || "";
+
+  if (options?.forceMock || !isDeepSeekConfigured()) {
+    const data = regenerateOptimize(input, style, customRequirement);
     return { ...data, provider: "mock" };
   }
 
   const content = await chatCompletion({
     system: STYLE_SYSTEM,
-    user: buildStyleUserPrompt(input, style, formatFinalResumeText(currentResume)),
+    user: buildStyleUserPrompt(
+      input,
+      style,
+      formatFinalResumeText(currentResume),
+      customRequirement
+    ),
     temperature: 0.3,
     maxTokens: 4096,
   });
@@ -78,13 +143,15 @@ export async function runStyleOptimize(
     finalResume: parsed.finalResume,
   });
 
+  const fallback = regenerateOptimize(input, style, customRequirement);
+
   return {
     optimizeRows: normalized.optimizeRows.length
       ? normalized.optimizeRows
-      : regenerateOptimize(input, style).optimizeRows,
+      : fallback.optimizeRows,
     finalResume: normalized.finalResume.summary
       ? normalized.finalResume
-      : regenerateOptimize(input, style).finalResume,
+      : fallback.finalResume,
     provider: "deepseek",
   };
 }

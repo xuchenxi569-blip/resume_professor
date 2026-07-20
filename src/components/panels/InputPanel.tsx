@@ -1,6 +1,11 @@
 "use client";
 
-import type { UserInput, JobStage } from "@/types";
+import type {
+  UserInput,
+  JobStage,
+  ResumeLibraryItem,
+  TargetRoleLibraryItem,
+} from "@/types";
 import { PanelHeader } from "@/components/ui";
 
 interface Props {
@@ -12,6 +17,11 @@ interface Props {
   analyzing: boolean;
   stage: JobStage;
   hasResult?: boolean;
+  libraryItems?: ResumeLibraryItem[];
+  onPickResume?: (text: string) => void;
+  roleLibraryItems?: TargetRoleLibraryItem[];
+  onPickRole?: (item: TargetRoleLibraryItem) => void;
+  onOpenRoleLibrary?: () => void;
 }
 
 export function InputPanel({
@@ -23,11 +33,77 @@ export function InputPanel({
   analyzing,
   stage,
   hasResult = false,
+  libraryItems = [],
+  onPickResume,
+  roleLibraryItems = [],
+  onPickRole,
+  onOpenRoleLibrary,
 }: Props) {
   const set = <K extends keyof UserInput>(key: K, v: UserInput[K]) =>
     onChange({ ...value, [key]: v });
 
   const isInterview = stage === "pre_interview";
+
+  const rolePicker = onPickRole ? (
+    <div className="field library-import" style={{ marginBottom: 12 }}>
+      <label>从目标岗位库导入</label>
+      <div className="library-import-row">
+        <select
+          className="select"
+          value=""
+          disabled={analyzing || roleLibraryItems.length === 0}
+          onChange={(e) => {
+            const item = roleLibraryItems.find((x) => x.id === e.target.value);
+            if (item) onPickRole(item);
+          }}
+        >
+          <option value="">
+            {roleLibraryItems.length === 0
+              ? "暂无保存的岗位"
+              : `选择岗位（共 ${roleLibraryItems.length} 个）…`}
+          </option>
+          {roleLibraryItems.map((item) => (
+            <option
+              key={item.id}
+              value={item.id}
+              disabled={!item.targetRole.trim() && !item.jdText.trim()}
+            >
+              {item.name}
+            </option>
+          ))}
+        </select>
+        {onOpenRoleLibrary ? (
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={onOpenRoleLibrary}
+            disabled={analyzing}
+          >
+            {roleLibraryItems.length === 0 ? "去添加" : "管理"}
+          </button>
+        ) : null}
+      </div>
+    </div>
+  ) : null;
+
+  const libraryPicker =
+    libraryItems.length > 0 && onPickResume ? (
+      <div className="library-pick">
+        <div className="library-pick-label">从简历库选用：</div>
+        {libraryItems.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => onPickResume(item.resumeText)}
+            disabled={analyzing || !item.resumeText.trim()}
+            title={item.note || item.name}
+          >
+            {item.name}
+          </button>
+        ))}
+      </div>
+    ) : null;
 
   return (
     <div className="panel">
@@ -36,7 +112,7 @@ export function InputPanel({
         description={
           isInterview
             ? "填写面试岗位、JD、公司与简历信息。分析后将生成面试准备材料与问答模拟。"
-            : "填写目标岗位与 JD、原始简历等信息。分析后将生成诊断、匹配、追问与优化简历。"
+            : "填写目标岗位与 JD、原始简历等信息。分析后将生成诊断、匹配与经历追问；完成追问后再生成优化简历。"
         }
       />
 
@@ -45,10 +121,23 @@ export function InputPanel({
           <div className="card">
             <div className="card-title">
               <span>基本信息</span>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={onLoadSample}>
-                使用示例数据
-              </button>
+              <div className="card-title-actions">
+                {onOpenRoleLibrary ? (
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={onOpenRoleLibrary}
+                    disabled={analyzing}
+                  >
+                    目标岗位库
+                  </button>
+                ) : null}
+                <button type="button" className="btn btn-secondary btn-sm" onClick={onLoadSample}>
+                  使用示例数据
+                </button>
+              </div>
             </div>
+            {rolePicker}
             <div className="grid-2">
               <div className="field">
                 <label>面试岗位</label>
@@ -100,6 +189,7 @@ export function InputPanel({
                 已启用：将从扣子知识库拉取简历事实与项目材料（当前为 Mock 占位，可后续替换真实 API）。
               </p>
             )}
+            {libraryPicker}
             <div className="field">
               <textarea
                 className="textarea tall"
@@ -130,10 +220,23 @@ export function InputPanel({
           <div className="card">
             <div className="card-title">
               <span>基本信息</span>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={onLoadSample}>
-                使用示例数据
-              </button>
+              <div className="card-title-actions">
+                {onOpenRoleLibrary ? (
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={onOpenRoleLibrary}
+                    disabled={analyzing}
+                  >
+                    目标岗位库
+                  </button>
+                ) : null}
+                <button type="button" className="btn btn-secondary btn-sm" onClick={onLoadSample}>
+                  使用示例数据
+                </button>
+              </div>
             </div>
+            {rolePicker}
             <div className="grid-2">
               <div className="field">
                 <label>目标岗位</label>
@@ -214,6 +317,7 @@ export function InputPanel({
                 已启用：将从扣子知识库拉取简历事实与项目材料（当前为 Mock 占位，可后续替换真实 API）。
               </p>
             )}
+            {libraryPicker}
             <div className="field">
               <textarea
                 className="textarea tall"
