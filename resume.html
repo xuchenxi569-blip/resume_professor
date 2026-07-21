@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>个人简历_姓名_求职意向</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-weight: normal;
+    }
+
+    body {
+      background-color: #f5f5f7;
+      color: #111111;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "PingFang SC", "Lantinghei SC", "Microsoft YaHei", sans-serif;
+      font-size: 14px;
+      font-weight: normal;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3, strong, b, .item-title, .item-subtitle, .skill-label, .job-intention {
+      font-weight: normal;
+    }
+
+    .resume-container {
+      background-color: #ffffff;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      margin: 40px auto;
+      max-width: 820px;
+      min-height: 1160px;
+      padding: 50px 60px;
+    }
+
+    header {
+      border-bottom: 2px solid #111111;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+    }
+
+    .header-top {
+      align-items: baseline;
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    h1 {
+      color: #000000;
+      font-size: 26px;
+      font-weight: 400;
+      letter-spacing: 1px;
+    }
+
+    .job-intention {
+      color: #333333;
+      font-size: 15px;
+      font-weight: 400;
+    }
+
+    .contact-info {
+      color: #444444;
+      display: flex;
+      flex-wrap: wrap;
+      font-size: 13px;
+      gap: 12px;
+    }
+
+    .contact-info span:not(:last-child)::after {
+      color: #cccccc;
+      content: "|";
+      margin-left: 12px;
+    }
+
+    .contact-info a {
+      color: #111111;
+      text-decoration: none;
+    }
+
+    .contact-info a:hover {
+      text-decoration: underline;
+    }
+
+    section {
+      margin-bottom: 24px;
+    }
+
+    h2 {
+      border-bottom: 1px solid #111111;
+      color: #111111;
+      font-size: 15px;
+      font-weight: 400;
+      letter-spacing: 1.5px;
+      margin-bottom: 12px;
+      padding-bottom: 4px;
+      text-transform: uppercase;
+    }
+
+    .summary-content {
+      color: #222222;
+      font-size: 13.5px;
+      line-height: 1.7;
+      text-align: justify;
+    }
+
+    .item-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .item-title {
+      font-weight: 400;
+    }
+
+    .item-subtitle {
+      color: #222222;
+      font-weight: 400;
+    }
+
+    .item-meta {
+      color: #555555;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .experience-item {
+      margin-bottom: 16px;
+    }
+
+    .experience-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .bullet-list {
+      list-style-type: none;
+      margin-top: 6px;
+      padding-left: 12px;
+    }
+
+    .bullet-list li {
+      color: #2b2b2b;
+      font-size: 13px;
+      line-height: 1.6;
+      margin-bottom: 4px;
+      position: relative;
+      text-align: justify;
+    }
+
+    .bullet-list li::before {
+      color: #111111;
+      content: "•";
+      font-size: 12px;
+      left: -12px;
+      position: absolute;
+      top: -1px;
+    }
+
+    .skills-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .skill-group {
+      display: flex;
+      font-size: 13px;
+    }
+
+    .skill-label {
+      font-weight: 400;
+      min-width: 100px;
+      width: 120px;
+    }
+
+    .skill-values {
+      color: #2b2b2b;
+      flex: 1;
+    }
+
+    .education-item {
+      margin-bottom: 8px;
+    }
+
+    .education-item:last-child {
+      margin-bottom: 0;
+    }
+
+    @media print {
+      body {
+        background-color: #ffffff;
+        color: #000000;
+      }
+
+      .resume-container {
+        box-shadow: none;
+        margin: 0;
+        max-width: 100%;
+        min-height: auto;
+        padding: 0;
+        width: 100%;
+      }
+
+      section {
+        page-break-inside: avoid;
+      }
+
+      @page {
+        margin: 18mm 20mm;
+        size: A4;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="resume-container">
+    <!-- 1. 个人信息 -->
+    <header>
+      <div class="header-top">
+        <h1>张简历</h1>
+        <div class="job-intention">求职意向：资深产品经理 / 项目专家</div>
+      </div>
+      <div class="contact-info">
+        <span>手机：138-1234-5678</span>
+        <span>邮箱：<a href="mailto:zhangjianli@example.com">zhangjianli@example.com</a></span>
+        <span>微信：WeChat_ID</span>
+        <span>城市：北京 / 上海</span>
+        <span>主页：<a href="https://github.com/yourusername" target="_blank">github.com/yourusername</a></span>
+      </div>
+    </header>
+
+    <!-- 2. 教育背景 -->
+    <section>
+      <h2>教育背景</h2>
+      <div class="education-item">
+        <div class="item-row">
+          <span class="item-title">北京大学</span>
+          <span class="item-subtitle">计算机科学与技术 · 硕士</span>
+          <span class="item-meta">2018.09 - 2021.07</span>
+        </div>
+      </div>
+      <div class="education-item">
+        <div class="item-row">
+          <span class="item-title">浙江大学</span>
+          <span class="item-subtitle">软件工程 · 学士</span>
+          <span class="item-meta">2014.09 - 2018.06</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. 个人摘要 -->
+    <section>
+      <h2>个人摘要</h2>
+      <div class="summary-content">
+        5 年互联网核心业务产品架构设计与落地经验，主导过两款从 0 到 1 的商业化协同软件研发。擅长利用大模型（LLM）等前沿 AI 技术进行业务赋能与流程重构，具备极强的数据分析、跨部门协同及敏捷开发管理能力。抗压能力强，自驱力高，热衷于用技术解决具有业务挑战的复杂问题。
+      </div>
+    </section>
+
+    <!-- 4. 工作经历 -->
+    <section>
+      <h2>工作经历</h2>
+      <div class="experience-item">
+        <div class="item-row">
+          <span class="item-title">北京某头部互联网科技有限公司</span>
+          <span class="item-subtitle">资深产品经理（协同办公部）</span>
+          <span class="item-meta">2023.05 - 至今</span>
+        </div>
+        <ul class="bullet-list">
+          <li>主导协同平台核心编辑器的架构重构，统筹协调 30 人规模的研发、测试及设计团队，如期推进项目上线。</li>
+          <li>通过引入 AI 智能辅助排版及内容生成模块，使用户产出效率提升了 35%，版本首月活跃度（WAU）增长 22.5%。</li>
+          <li>建立精细化的用户数据漏斗分析模型，诊断并修复 5 处关键流失节点，将新用户次日留存率从 38.4% 优化至 45.2%。</li>
+        </ul>
+      </div>
+      <div class="experience-item">
+        <div class="item-row">
+          <span class="item-title">上海某领先企业软件技术有限公司</span>
+          <span class="item-subtitle">产品经理（SaaS 业务组）</span>
+          <span class="item-meta">2021.07 - 2023.04</span>
+        </div>
+        <ul class="bullet-list">
+          <li>负责企业级 CRM 系统核心客户流转模块的设计，支撑了超过 150 家大型 B 端客户的日常业务运转。</li>
+          <li>制定高标准的产品迭代路线图（Roadmap），完成 12 个大版本的平滑升级，版本按时交付率保持在 98% 以上。</li>
+          <li>深入业务一线进行多轮客户访谈，提炼共性痛点并输出需求规格说明书（PRD），推动了新版本续费率提升 8 个百分点。</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 5. 项目经历 -->
+    <section>
+      <h2>项目经历</h2>
+      <div class="experience-item">
+        <div class="item-row">
+          <span class="item-title">企业级 AI 智能知识库平台从 0 到 1 建设</span>
+          <span class="item-subtitle">项目负责人</span>
+          <span class="item-meta">2024.01 - 2024.08</span>
+        </div>
+        <ul class="bullet-list">
+          <li>项目描述：为解决企业内部跨部门文档零散、检索效率低的问题，主导孵化了集成 LLM 和 RAG 架构的智能客服与知识管理系统。</li>
+          <li>核心职责：负责全流程的产品定义、Prompt 调优及算法评测标准制定，紧密对接技术团队与安全部门。</li>
+          <li>项目成果：该系统在集团内部推广后，使跨部门日常检索耗时降低了 60% 以上，准确率达到 92.3%，成功为公司节省了可观的人力成本。</li>
+        </ul>
+      </div>
+      <div class="experience-item">
+        <div class="item-row">
+          <span class="item-title">高并发订单流转系统性能优化</span>
+          <span class="item-subtitle">核心设计者</span>
+          <span class="item-meta">2022.09 - 2022.12</span>
+        </div>
+        <ul class="bullet-list">
+          <li>项目描述：针对大促期间高并发访问导致的系统响应延迟问题，进行全链路的产品业务策略优化。</li>
+          <li>具体行动：优化了排队削峰的产品呈现逻辑，配合技术团队精简冗余状态流转，提升用户在极端情况下的体感响应速度。</li>
+          <li>最终成效：成功应对日均千万级订单洪峰，系统故障响应时间由 10 分钟降至 15 秒内，订单流转漏斗转化率提升 2.8%。</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 6. 技能工具 -->
+    <section>
+      <h2>技能工具</h2>
+      <div class="skills-grid">
+        <div class="skill-group">
+          <span class="skill-label">专业技能：</span>
+          <span class="skill-values">产品架构设计 / 业务逻辑设计 / 用户数据漏斗分析 / RAG 知识检索 / 需求分析（PRD 编写）</span>
+        </div>
+        <div class="skill-group">
+          <span class="skill-label">工具掌握：</span>
+          <span class="skill-values">Axure RP / Figma / SQL（熟练查询）/ Python（数据清洗基础）/ Jira & Confluence / Git</span>
+        </div>
+        <div class="skill-group">
+          <span class="skill-label">通用素养：</span>
+          <span class="skill-values">敏捷项目管理 / 跨部门高频协同能力 / 独立解决复杂逻辑痛点 / 中英双语沟通</span>
+        </div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

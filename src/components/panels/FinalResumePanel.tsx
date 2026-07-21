@@ -7,11 +7,13 @@ export function FinalResumePanel({
   resume,
   onChange,
   onCopy,
+  onExportHtml,
   onSaveToLibrary,
 }: {
   resume: FinalResume;
   onChange: (next: FinalResume) => void;
   onCopy: () => void;
+  onExportHtml?: () => void;
   onSaveToLibrary?: () => void;
 }) {
   const setField = <K extends keyof FinalResume>(key: K, value: FinalResume[K]) => {
@@ -22,13 +24,22 @@ export function FinalResumePanel({
     <div className="panel">
       <PanelHeader
         title="最终简历"
-        description="可直接编辑各段落内容，修改会立即生效；编辑完成后可复制或保存到简历库。"
+        description="可直接编辑各段落内容，修改会立即生效；编辑完成后可复制、导出 HTML 或保存到简历库。"
       />
 
       <div className="row-actions" style={{ marginTop: 0, marginBottom: 12 }}>
         <button type="button" className="btn btn-primary btn-sm" onClick={onCopy}>
           复制最终简历
         </button>
+        {onExportHtml ? (
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={onExportHtml}
+          >
+            导出 HTML 简历
+          </button>
+        ) : null}
         {onSaveToLibrary ? (
           <button
             type="button"

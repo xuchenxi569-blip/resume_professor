@@ -15,6 +15,7 @@ import type {
 } from "@/types";
 import { APPLY_STEPS, INTERVIEW_STEPS, SAMPLE_INPUT } from "@/lib/sample-data";
 import { formatFinalResumeText } from "@/lib/mock-ai";
+import { downloadFinalResumeHtml } from "@/lib/export-resume-html";
 import { loadResumeLibrary, saveResumeLibrary } from "@/lib/resume-library";
 import {
   loadApplicationLibrary,
@@ -648,6 +649,14 @@ export default function HomePage() {
             onCopy={() =>
               copyText(formatFinalResumeText(result.finalResume), "最终简历已复制")
             }
+            onExportHtml={() => {
+              try {
+                const filename = downloadFinalResumeHtml(result.finalResume);
+                showToast(`已导出 ${filename}`);
+              } catch {
+                showToast("导出失败，请重试");
+              }
+            }}
             onSaveToLibrary={() => {
               const text = formatFinalResumeText(result.finalResume).trim();
               if (!text) {
